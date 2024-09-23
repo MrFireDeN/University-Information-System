@@ -126,7 +126,8 @@ def get_departments(request):
     elif faculty and semester:
         departments = departments.filter(
             faculty__name=faculty,
-            faculty__studentgroup__year_of_admission=int((datetime.now().year - (
+            faculty__studentgroup__year_of_admission=int(
+                (datetime.now().year - (
                         int(semester) - 1) * 0.5) // 1))
     elif period:
         start, end = period.split(',')
@@ -145,25 +146,28 @@ def get_departments(request):
     return JsonResponse(data)
 
 
-# 5. Список и число преподавателей, проводивших занятия по указанной дисциплине
+# 5. Получить список и общее число преподавателей, проводивших (проводящих)
+# занятия по указанной дисциплине в указанной группе либо на указанном курсе
+# указанного факультета
 def get_instructors_by_subject(request):
     subject = request.GET.get('subject')
     group = request.GET.get('group')
     course = request.GET.get('course')
     faculty = request.GET.get('faculty')
 
-    instructors = Instructor.objects.filter(
-        instructorload__teaching_assignment__subject__name=subject)
+    instructors = Instructor.objects.all()
 
-    if group:
+    if subject and group:
         instructors = instructors.filter(
-            instructorload__teaching_assignment__student_group__name=group)
-    if course:
+            department__faculty__curriculum__subject__name=subject
+        )
         instructors = instructors.filter(
-            instructorload__teaching_assignment__student_group__year_of_admission=course)
-    if faculty:
+            department__faculty__studentgroup__name=group)
+    if course and faculty:
         instructors = instructors.filter(
-            instructorload__teaching_assignment__student_group__faculty__name=faculty)
+            department__faculty__studentgroup__year_of_admission=datetime.now().year - (
+                    int(course) - 1))
+        instructors = instructors.filter(department__faculty__name=faculty)
 
     instructors = instructors.distinct()
 
@@ -185,22 +189,28 @@ def get_instructors_by_activity(request):
     semester = request.GET.get('semester')
     period = request.GET.get('period')
 
-    instructors = Instructor.objects.filter(
-        instructorload__teaching_assignment__student_group__name=group)
+    instructors = Instructor.objects.all()
 
-    if course:
+    if group:
         instructors = instructors.filter(
-            instructorload__teaching_assignment__student_group__year_of_admission=course)
-    if faculty:
+            department__faculty__studentgroup__name=group
+        )
+
+    if course and faculty and semester:
         instructors = instructors.filter(
-            instructorload__teaching_assignment__student_group__faculty__name=faculty)
-    if semester:
+            department__faculty__studentgroup__year_of_admission=datetime.now().year - (
+                    int(course) - 1))
         instructors = instructors.filter(
-            instructorload__teaching_assignment__semester=semester)
+            department__faculty__name=faculty,
+            department__faculty__studentgroup__year_of_admission=int(
+                (datetime.now().year - (
+                        int(semester) - 1) * 0.5) // 1)
+        )
     if period:
         start, end = period.split(',')
         instructors = instructors.filter(
-            instructorload__teaching_assignment__semester__range=(start, end))
+            department__faculty__studentgroup__year_of_admission__range=(
+                int(start), int(end)))
 
     instructors = instructors.distinct()
 
@@ -214,7 +224,8 @@ def get_instructors_by_activity(request):
     return JsonResponse(data)
 
 
-# 7. Список студентов, сдавших зачет/экзамен с указанной оценкой
+# 7. Получить список и общее число студентов указанных групп, сдавших зачет
+# либо экзамен по указанной дисциплине с указанной оценкой.
 def get_exam_results(request):
     group = request.GET.get('group')
     subject = request.GET.get('subject')
@@ -233,30 +244,33 @@ def get_exam_results(request):
     return JsonResponse(data)
 
 
-# 8. Список студентов с результатами сессии
+# 8. Получить список и общее число студентов указанных групп или указанного
+# курса указанного факультета, сдавших указанную сессию на отлично, без троек,
+# без двоек.
 def get_session_results(request):
     group = request.GET.get('group')
     course = request.GET.get('course')
     faculty = request.GET.get('faculty')
-    session_type = request.GET.get('session_type')
+    grade = request.GET.get('grade')
 
-    students = Student.objects.filter(student_group__name=group)
-
-    if course:
-        students = students.filter(student_group__year_of_admission=course)
+    students = Student.objects.all()
+    if group:
+        students = students.filter(student_group__name=group)
+    elif course:
+        students = students.filter(
+            student_group__year_of_admission=datetime.now().year - (
+                    int(course) - 1
+            ))
     if faculty:
         students = students.filter(student_group__faculty__name=faculty)
 
-    if session_type == 'excellent':
-        students = students.annotate(num_excellent=Count('examrecord',
-                                                         filter=Q(
-                                                             examrecord__grade='отлично')))
-    elif session_type == 'no_threes':
-        students = students.annotate(num_good=Count('examrecord', filter=Q(
-            examrecord__grade__in=['отлично', 'хорошо'])))
-    elif session_type == 'no_fours':
-        students = students.annotate(num_fair=Count('examrecord', filter=Q(
-            examrecord__grade='удовлетворительно')))
+    if grade == 'excellent':
+        students = students.filter(examrecord__grade='A')
+
+    elif grade == 'no_threes':
+        students = students.filter(examrecord__grade__in=['A', 'B'])
+    elif grade == 'no_twos':
+        students = students.filter(examrecord__grade__in=['A', 'B', 'C'])
 
     total_students = students.count()
 
