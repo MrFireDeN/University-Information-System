@@ -8,12 +8,16 @@ from .models import Student, Instructor, Thesis, ExamRecord, \
     Faculty, InstructorCategory, Curriculum
 
 
-# 1. Перечень и число студентов
+# 1. Получить перечень и общее число студентов указанных групп либо
+# указанного курса (курсов) факультета полностью, по половому признаку,
+# году рождения, возрасту, признаку наличия детей, по признаку получения
+# и размеру стипендии.
 def get_students(request):
     groups = request.GET.getlist('groups')
     course = request.GET.get('course')
     gender = request.GET.get('gender')
     birth_year = request.GET.get('birth_year')
+    age = request.GET.get('age')
     has_children = request.GET.get('has_children')
     scholarship = request.GET.get('scholarship')
 
@@ -26,7 +30,10 @@ def get_students(request):
     if gender:
         students = students.filter(gender=gender)
     if birth_year:
-        students = students.filter(birth_date__year=birth_year)
+        students = students.filter(birth_year=birth_year)
+    if age:
+        students = students.filter(birth_year=datetime.now().year - (
+                    int(age)))
     if has_children is not None:
         students = students.filter(has_children=has_children)
     if scholarship:
