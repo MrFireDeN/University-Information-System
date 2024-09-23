@@ -56,7 +56,9 @@ def get_instructors(request):
     categories = request.GET.getlist('categories')
     gender = request.GET.get('gender')
     birth_year = request.GET.get('birth_year')
+    age = request.GET.get('age')
     has_children = request.GET.get('has_children')
+    defense_date = request.GET.get('defense_date')
     is_phd = request.GET.get('is_phd')
     is_doctor = request.GET.get('is_doctor')
     postgraduate = request.GET.get('postgraduate')
@@ -74,6 +76,14 @@ def get_instructors(request):
         instructors = instructors.filter(gender=gender)
     if birth_year:
         instructors = instructors.filter(birth_year=birth_year)
+    if age:
+        instructors = instructors.filter(birth_year=datetime.now().year - (
+                    int(age)))
+    if defense_date:
+        start, end = defense_date.split(',')
+        instructors = instructors.filter(
+            thesis__defense_date__range=(start, end)
+        )
     if has_children is not None:
         instructors = instructors.filter(has_children=has_children)
     if salary:

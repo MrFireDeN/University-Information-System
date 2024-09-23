@@ -29,6 +29,10 @@ class InstructorCategory(models.Model):
 
 # Преподаватель
 class Instructor(models.Model):
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+    ]
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
@@ -38,6 +42,8 @@ class Instructor(models.Model):
     salary = models.DecimalField(max_digits=10, decimal_places=2,
                                  null=True,
                                  blank=True)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES,
+                              default=GENDER_CHOICES[0][0])
 
     is_phd = models.BooleanField(default=False)  # Кандидат наук
     is_doctor = models.BooleanField(default=False)  # Доктор наук
@@ -142,7 +148,7 @@ class ExamRecord(models.Model):
         return f"{self.student} - {self.subject.name} - {self.grade}"
 
 
-# Дипломная работа
+# Работа
 class Thesis(models.Model):
     title = models.CharField(max_length=255)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
