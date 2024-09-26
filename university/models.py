@@ -1,10 +1,15 @@
 from django.db import models
+from django.utils.crypto import get_random_string
 
 
 # Факультет
 class Faculty(models.Model):
     name = models.CharField(max_length=255)
     deanery = models.CharField(max_length=255)  # Деканат
+
+
+    def generate_random_name(self):
+        return get_random_string(length=12)
 
     def __str__(self):
         return self.name
@@ -15,6 +20,9 @@ class Department(models.Model):
     name = models.CharField(max_length=255)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
 
+    def faculty_name(self):
+        return self.faculty.name
+
     def __str__(self):
         return self.name
 
@@ -22,6 +30,11 @@ class Department(models.Model):
 # Категории преподавателей
 class InstructorCategory(models.Model):
     name = models.CharField(max_length=255)
+
+    def check_name_length(self, value):
+        if len(value) < value:
+            return True
+        return False
 
     def __str__(self):
         return self.name
@@ -81,6 +94,9 @@ class Student(models.Model):
                                       null=True,
                                       blank=True)  # Размер стипендии, если есть
 
+    def get_first_name_length(self, value):
+        return len(value) < value
+
     def __str__(self):
         return f"{self.last_name} {self.first_name}"
 
@@ -118,6 +134,9 @@ class TeachingAssignment(models.Model):
     student_group = models.ForeignKey(StudentGroup, on_delete=models.CASCADE)
     semester = models.IntegerField()
 
+    def semester(self, date):
+        return date == self.semester * 0.5
+
     def __str__(self):
         return f"{self.department.name} - {self.subject.name} - {self.student_group.name}"
 
@@ -133,6 +152,9 @@ class InstructorLoad(models.Model):
     consultation_hours = models.IntegerField(null=True, blank=True)
     coursework_hours = models.IntegerField(null=True, blank=True)
 
+    def check_lab_hours(self):
+        return self.lab_hours == 3
+
     def __str__(self):
         return f"{self.instructor} - {self.teaching_assignment}"
 
@@ -143,6 +165,20 @@ class ExamRecord(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     grade = models.CharField(max_length=10)  # Оценка или "зачет"/"незачет"
     date = models.DateField()
+
+    def grade_to_rus(self):
+        if self.grade == "A":
+            return 5
+        if self.grade == "B":
+            return 4
+        if self.grade == "C":
+            return 3
+        if self.grade == "D":
+            return 2
+        return False
+
+    def get_date(self):
+        return self.date
 
     def __str__(self):
         return f"{self.student} - {self.subject.name} - {self.grade}"
