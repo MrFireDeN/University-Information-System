@@ -360,21 +360,34 @@ def get_grades_by_instructor(request):
     return JsonResponse(data)
 
 
-# 11. Список студентов и тем дипломных работ, выполняемых ими на указанной кафедре либо у указанного преподавателя
+# 11. Получить список студентов и тем дипломных работ, выполняемых ими на
+# указанной кафедре либо у указанного преподавателя.
 def get_thesis_topics(request):
     department = request.GET.get('department')
     instructor = request.GET.get('instructor')
 
-    theses = Thesis.objects.filter(instructor__department__name=department)
+    theses = Thesis.objects.all()
+
+    if department:
+        theses = theses.filter(instructor__department__name=department)
 
     if instructor:
-        theses = theses.filter(instructor__name=instructor)
+        theses = theses.filter(instructor__first_name=instructor)
 
     total_theses = theses.count()
 
+    theses_data = []
+    for thesis in theses:
+        theses_data.append({
+            'title': thesis.title,
+            'student': f'{thesis.student.first_name} {thesis.student.last_name}',
+            'instructor': f'{thesis.instructor.first_name} {thesis.instructor.last_name}',
+            'defense_date': thesis.defense_date,
+        })
+
     data = {
         'total_theses': total_theses,
-        'theses': list(theses.values())
+        'theses': theses_data
     }
 
     return JsonResponse(data)
