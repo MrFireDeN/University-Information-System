@@ -33,7 +33,7 @@ def get_students(request):
         students = students.filter(birth_year=birth_year)
     if age:
         students = students.filter(birth_year=datetime.now().year - (
-                    int(age)))
+            int(age)))
     if has_children is not None:
         students = students.filter(has_children=has_children)
     if scholarship:
@@ -78,7 +78,7 @@ def get_instructors(request):
         instructors = instructors.filter(birth_year=birth_year)
     if age:
         instructors = instructors.filter(birth_year=datetime.now().year - (
-                    int(age)))
+            int(age)))
     if defense_date:
         start, end = defense_date.split(',')
         instructors = instructors.filter(
@@ -299,16 +299,18 @@ def get_session_results(request):
     return JsonResponse(data)
 
 
-# 9. Получить перечень преподавателей, принимающих экзамены в указанных группах, по указанным дисциплинам, в указанном семестре.
+# 9. Получить перечень преподавателей, принимающих (принимавших) экзамены в указанных группах, по указанным дисциплинам, в указанном семестре.
 def get_examiners(request):
     group = request.GET.get('group')
     subject = request.GET.get('subject')
     semester = request.GET.get('semester')
 
     examiners = Instructor.objects.filter(
-        examrecord__student__student_group__name=group,
-        examrecord__subject__name=subject,
-        examrecord__semester=semester).distinct()
+        department__teachingassignment__student_group__name=group,
+        department__teachingassignment__subject__name=subject,
+        department__faculty__studentgroup__year_of_admission=int(
+            (datetime.now().year - (
+                    int(semester) - 1) * 0.5) // 1)).distinct()
 
     total_examiners = examiners.count()
 
@@ -320,21 +322,39 @@ def get_examiners(request):
     return JsonResponse(data)
 
 
-# 10. Список студентов, которым преподаватель поставил оценку за экзамен по определенным дисциплинам, в указанных семестрах, за некоторый период
+# 10. Получить список студентов указанных групп, либо которым заданный
+# преподаватель поставил некоторую оценку за экзамен по определенным
+# дисциплинам, в указанных семестрах, за некоторый период.
 def get_grades_by_instructor(request):
+    group = request.GET.get('group')
     instructor = request.GET.get('instructor')
     subject = request.GET.get('subject')
+    grade = request.GET.get('grade')
     semester = request.GET.get('semester')
+    period = request.GET.get('period')
 
-    exam_records = ExamRecord.objects.filter(instructor__name=instructor,
-                                             subject__name=subject,
-                                             semester=semester)
+    students = Student.objects.all()
 
-    total_records = exam_records.count()
+    if group:
+        students = students.filter(student_group__name=group)
+    if instructor and subject and grade and semester and period:
+        period = period.split(',')
+        start = datetime.strptime(period[0], "%Y-%m-%d").date()
+        end = datetime.strptime(period[1], "%Y-%m-%d").date()
+        students = students.filter(
+            student_group__faculty__department__instructor__first_name=instructor,
+            examrecord__grade=grade,
+            examrecord__subject__name=subject,
+            student_group__year_of_admission=int(
+                (datetime.now().year - (
+                        int(semester) - 1) * 0.5) // 1),
+            examrecord__date__range=(start, end))
+
+    total_records = students.count()
 
     data = {
         'total_records': total_records,
-        'exam_records': list(exam_records.values())
+        'exam_records': list(students.values())
     }
 
     return JsonResponse(data)
