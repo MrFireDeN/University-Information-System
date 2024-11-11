@@ -393,19 +393,22 @@ def get_thesis_topics(request):
     return JsonResponse(data)
 
 
-# 12. Список руководителей дипломных работ с указанной кафедры либо факультета полностью и раздельно по категориям преподавателей
+# 12. Список руководителей дипломных работ с указанной кафедры либо факультета
+# полностью и раздельно по категориям преподавателей
 def get_thesis_supervisors(request):
     department = request.GET.get('department')
     faculty = request.GET.get('faculty')
     category = request.GET.get('category')
 
-    instructors = Instructor.objects.filter(
-        thesis__instructor__department__name=department)
+    instructors = Instructor.objects.all()
 
+    if department:
+        instructors = instructors.filter(
+            thesis__instructor__department__name=department)
     if faculty:
         instructors = instructors.filter(department__faculty__name=faculty)
     if category:
-        instructors = instructors.filter(category=category)
+        instructors = instructors.filter(category__name=category)
 
     instructors = instructors.distinct()
 
@@ -419,7 +422,8 @@ def get_thesis_supervisors(request):
     return JsonResponse(data)
 
 
-# 13. Нагрузка преподавателей в указанном семестре для конкретного преподавателя либо для преподавателей указанной кафедры
+# 13. Нагрузка преподавателей в указанном семестре для конкретного
+# преподавателя либо для преподавателей указанной кафедры
 def get_instructor_load(request):
     instructor = request.GET.get('instructor')
     department = request.GET.get('department')
