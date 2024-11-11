@@ -429,13 +429,14 @@ def get_instructor_load(request):
     department = request.GET.get('department')
     semester = request.GET.get('semester')
 
-    load = InstructorLoad.objects.filter(
-        teaching_assignment__semester=semester)
+    load = InstructorLoad.objects.all()
 
-    if instructor:
-        load = load.filter(instructor__name=instructor)
-    if department:
-        load = load.filter(instructor__department__name=department)
+    if semester and instructor:
+        load = load.filter(instructor__name=instructor,
+                           teaching_assignment__semester=semester)
+    if semester and department:
+        load = load.filter(instructor__department__name=department,
+                           teaching_assignment__semester=semester)
 
     total_hours = load.aggregate(total_hours=Sum('hours'))
 
