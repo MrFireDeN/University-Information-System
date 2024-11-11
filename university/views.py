@@ -432,13 +432,18 @@ def get_instructor_load(request):
     load = InstructorLoad.objects.all()
 
     if semester and instructor:
-        load = load.filter(instructor__name=instructor,
-                           teaching_assignment__semester=semester)
+        load = load.filter(instructor__first_name=instructor,
+                           instructor__department__faculty__studentgroup__year_of_admission=int(
+                               (datetime.now().year - (
+                                       int(semester) - 1) * 0.5) // 1))
     if semester and department:
         load = load.filter(instructor__department__name=department,
-                           teaching_assignment__semester=semester)
+                           instructor__department__faculty__studentgroup__year_of_admission=int(
+                               (datetime.now().year - (
+                                       int(semester) - 1) * 0.5) // 1)
+                           )
 
-    total_hours = load.aggregate(total_hours=Sum('hours'))
+    total_hours = load.aggregate(total_hours=Sum('lab_hours'))
 
     data = {
         'total_hours': total_hours['total_hours'],
